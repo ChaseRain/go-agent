@@ -1,0 +1,34 @@
+# Go Agent Configuration
+
+# Agent configuration
+agent:
+  name: "Go-Agent"
+  role_description: "Intelligent agent for task planning and execution"
+  max_steps: [5, 3, 2]  # Multi-level planning depth
+  max_rounds: 10
+  parallel: false
+
+# LLM provider configuration
+llm:
+  provider: "openai"  # openai, mock
+  model: "gpt-4o-mini"
+  temperature: 0.7
+  max_tokens: 4096
+  # API key via environment variable OPENAI_API_KEY
+
+# Execution configuration
+execution:
+  timeout: 30  # seconds
+  output_dir: "./output"
+
+# Tool configuration
+tools:
+  enabled:
+    - "calculator"
+    - "file"
+    - "search"
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  file: "./logs/agent.log"

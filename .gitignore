@@ -1,0 +1,47 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build output
+bin/
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Output directories
+output/
+records/
+logs/
+data/
+
+# Coverage files
+coverage.out
+coverage.html
+*.coverprofile
+
+# Environment files
+.env
+.env.local
+
+# Claude local settings
+.claude/
+
+# Temporary files
+tmp/
+temp/
