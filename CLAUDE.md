@@ -205,3 +205,20 @@ Based on Python version capabilities not yet implemented:
 - Additional LLM providers (Gemini, Claude)
 - Excel output generation
 - Visual debugging interface
+
+# Comment Guidelines
+- Use Chinese comments for all Go code in this project
+- Comments should explain the purpose and functionality, not just translate the code
+- Function comments should describe what the function does and its parameters
+- Package-level comments should explain the package's role in the system
+- Inline comments should clarify complex logic or business rules
+- Follow Go documentation conventions but in Chinese language
+
+Example format:
+```go
+// functionName 函数的作用和功能描述
+// 参数说明如有需要
+func functionName() {
+    // 复杂逻辑的解释
+}
+```

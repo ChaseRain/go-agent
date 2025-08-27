@@ -3,6 +3,8 @@ package execution
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,7 +89,7 @@ func (e *TaskExecutor) ExecuteTask(ctx context.Context, task *models.SubTask, ex
 	if execErr != nil {
 		task.State = models.TaskStateFail
 		task.StateMsg = execErr.Error()
-		
+
 		// Record error
 		e.recordManager.Record(
 			interfaces.RecordTypeError,
@@ -191,7 +193,7 @@ Context:
 Agent: %s
 Session: %s
 
-Please complete this task and provide the result.`, 
+Please complete this task and provide the result.`,
 		task.Name, task.Description, task.Process,
 		execContext.AgentName, execContext.SessionID)
 
@@ -223,19 +225,19 @@ Please complete this task and provide the result.`,
 	// Save result to output file
 	task.OutputFile = fmt.Sprintf("%s_%s.md", task.Name, time.Now().Format("20060102_150405"))
 	// In real implementation, would save to actual file
-	
+
 	return nil
 }
 
 func (e *TaskExecutor) executeFunctionTask(ctx context.Context, task *models.SubTask, execContext *models.ExecutionContext) error {
 	// Parse function name and arguments from task process
 	functionName, args := e.parseFunctionCall(task.Process)
-	
+
 	// Get tool
 	e.mu.RLock()
 	tool, exists := e.tools[functionName]
 	e.mu.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("function %s not found", functionName)
 	}
@@ -265,18 +267,18 @@ func (e *TaskExecutor) executeFunctionTask(ctx context.Context, task *models.Sub
 
 	// Store result
 	task.OutputFile = fmt.Sprintf("function_%s_%s.json", functionName, time.Now().Format("20060102_150405"))
-	
+
 	return nil
 }
 
 func (e *TaskExecutor) executeAgentCallTask(ctx context.Context, task *models.SubTask, execContext *models.ExecutionContext) error {
 	// Parse agent name and task from process
 	agentName, agentTask := e.parseAgentCall(task.Process)
-	
+
 	// In real implementation, would create and call sub-agent
 	// For now, simulate with LLM call
 	prompt := fmt.Sprintf(`Acting as agent '%s', execute: %s`, agentName, agentTask)
-	
+
 	messages := []models.Message{
 		{Role: "system", Content: fmt.Sprintf("You are agent: %s", agentName)},
 		{Role: "user", Content: prompt},
@@ -306,11 +308,11 @@ func (e *TaskExecutor) executeAgentGenTask(ctx context.Context, task *models.Sub
 	// Agent generation creates a new agent instance
 	// In real implementation, would instantiate new agent
 	// For now, simulate with enhanced context
-	
+
 	newAgentChain := append(execContext.AgentChain, task.Name)
 	newContext := *execContext
 	newContext.AgentChain = newAgentChain
-	
+
 	// Execute as sub-agent
 	return e.executeNormalTask(ctx, task, &newContext)
 }
@@ -318,42 +320,42 @@ func (e *TaskExecutor) executeAgentGenTask(ctx context.Context, task *models.Sub
 func (e *TaskExecutor) executeParallel(ctx context.Context, tasks []models.SubTask, execContext *models.ExecutionContext) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(tasks))
-	
+
 	// Create worker pool
 	semaphore := make(chan struct{}, e.maxWorkers)
-	
+
 	for i := range tasks {
 		wg.Add(1)
 		go func(task *models.SubTask) {
 			defer wg.Done()
-			
+
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			
+
 			// Execute task
 			if err := e.ExecuteTask(ctx, task, execContext); err != nil {
 				errChan <- fmt.Errorf("task %s failed: %w", task.ID, err)
 			}
 		}(&tasks[i])
 	}
-	
+
 	// Wait for all tasks to complete
 	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
-	
+
 	// Collect errors
 	var errs []error
 	for err := range errChan {
 		errs = append(errs, err)
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("parallel execution had %d errors: %v", len(errs), errs[0])
 	}
-	
+
 	return nil
 }
 
@@ -361,7 +363,7 @@ func (e *TaskExecutor) analyzeTaskDependencies(tasks []models.SubTask) [][]model
 	// Build dependency graph
 	dependencyMap := make(map[string][]string)
 	taskMap := make(map[string]*models.SubTask)
-	
+
 	for i := range tasks {
 		task := &tasks[i]
 		taskMap[task.ID] = task
@@ -369,19 +371,19 @@ func (e *TaskExecutor) analyzeTaskDependencies(tasks []models.SubTask) [][]model
 			dependencyMap[task.ID] = []string{task.Dependent}
 		}
 	}
-	
+
 	// Topological sort to determine execution order
 	var groups [][]models.SubTask
 	processed := make(map[string]bool)
-	
+
 	for len(processed) < len(tasks) {
 		var currentGroup []models.SubTask
-		
+
 		for _, task := range tasks {
 			if processed[task.ID] {
 				continue
 			}
-			
+
 			// Check if all dependencies are processed
 			canExecute := true
 			if deps, hasDeps := dependencyMap[task.ID]; hasDeps {
@@ -392,17 +394,17 @@ func (e *TaskExecutor) analyzeTaskDependencies(tasks []models.SubTask) [][]model
 					}
 				}
 			}
-			
+
 			if canExecute {
 				currentGroup = append(currentGroup, task)
 			}
 		}
-		
+
 		// Mark current group as processed
 		for _, task := range currentGroup {
 			processed[task.ID] = true
 		}
-		
+
 		if len(currentGroup) > 0 {
 			groups = append(groups, currentGroup)
 		} else {
@@ -410,24 +412,74 @@ func (e *TaskExecutor) analyzeTaskDependencies(tasks []models.SubTask) [][]model
 			break
 		}
 	}
-	
+
 	return groups
 }
 
 func (e *TaskExecutor) parseFunctionCall(process string) (string, map[string]interface{}) {
-	// Simple parsing - in real implementation would be more robust
-	// Format: <function_call>functionName(arg1=value1, arg2=value2)</function_call>
-	
-	// For now, return mock data
-	return "search", map[string]interface{}{
-		"query": "example search",
+	// 解析函数调用格式: <function_call>functionName(arg1=value1, arg2=value2)</function_call>
+	// 或者简化格式: calculator(operation=basic, operator=+, a=15, b=27)
+
+	// 查找函数调用标签
+	start := strings.Index(process, "<function_call>")
+	end := strings.Index(process, "</function_call>")
+
+	var funcCall string
+	if start != -1 && end != -1 {
+		funcCall = process[start+15 : end] // 15 = len("<function_call>")
+	} else {
+		// 尝试直接解析，假设整个process就是函数调用
+		funcCall = strings.TrimSpace(process)
 	}
+
+	// 解析函数名和参数
+	parenIndex := strings.Index(funcCall, "(")
+	if parenIndex == -1 {
+		// 没有参数的函数调用
+		return strings.TrimSpace(funcCall), map[string]interface{}{}
+	}
+
+	functionName := strings.TrimSpace(funcCall[:parenIndex])
+	argsStr := funcCall[parenIndex+1:]
+
+	// 移除末尾的 )
+	if strings.HasSuffix(argsStr, ")") {
+		argsStr = argsStr[:len(argsStr)-1]
+	}
+
+	// 解析参数
+	args := make(map[string]interface{})
+	if argsStr != "" {
+		// 简单的参数解析：arg1=value1, arg2=value2
+		pairs := strings.Split(argsStr, ",")
+		for _, pair := range pairs {
+			pair = strings.TrimSpace(pair)
+			if strings.Contains(pair, "=") {
+				parts := strings.SplitN(pair, "=", 2)
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+
+				// 尝试转换数值
+				if intVal, err := strconv.Atoi(value); err == nil {
+					args[key] = intVal
+				} else if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
+					args[key] = floatVal
+				} else {
+					// 移除引号
+					value = strings.Trim(value, "\"'")
+					args[key] = value
+				}
+			}
+		}
+	}
+
+	return functionName, args
 }
 
 func (e *TaskExecutor) parseAgentCall(process string) (string, string) {
 	// Simple parsing - in real implementation would be more robust
 	// Format: <agent_call>agentName: task description</agent_call>
-	
+
 	// For now, return mock data
 	return "ResearchAgent", "Research the topic"
 }
