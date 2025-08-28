@@ -1,0 +1,36 @@
+# DeepSeek个人版API配置文件
+# 使用DeepSeek个人API端点进行智能对话
+
+# 代理配置
+agent:
+  name: "Go-Agent-DeepSeek"
+  role_description: "基于DeepSeek V3的智能代理，专门用于任务规划和执行"
+  max_steps: [5, 3, 2]  # 多层级规划深度
+  max_rounds: 10         # 最大对话轮数
+  parallel: false        # 串行执行模式（推荐）
+
+# LLM提供者配置 - DeepSeek个人版
+llm:
+  provider: "deepseek-personal"  # 使用DeepSeek个人版provider
+  model: "deepseek-chat"         # DeepSeek聊天模型
+  temperature: 0.7               # 响应创造性（0.0-2.0）
+  max_tokens: 4000              # 最大响应token数
+  api_key: "sk-4ad2357f8ed3483ca32d278f0b5d5ebe"  # DeepSeek个人API密钥
+  base_url: "https://api.deepseek.com"           # DeepSeek个人API端点
+
+# 执行配置
+execution:
+  timeout: 30  # 任务超时时间（秒）
+  output_dir: "./output"  # 输出文件目录
+
+# 工具配置
+tools:
+  enabled:
+    - "calculator"  # 计算器工具
+    - "file"       # 文件操作工具
+    - "search"     # 搜索工具
+
+# 日志配置
+logging:
+  level: "info"  # 日志级别: debug, info, warn, error
+  file: "./logs/agent-deepseek.log"  # 日志文件路径

@@ -522,11 +522,31 @@
         }
 
         // 处理结果事件
+        let currentMessageDiv = null;
         function handleResultEvent(data) {
-            addMessage(data.message, 'assistant');
-            
-            if (data.summary) {
-                addMessage(`📊 摘要: ${data.summary}`, 'thinking');
+            if (data.streaming) {
+                // 流式更新消息
+                if (!currentMessageDiv) {
+                    currentMessageDiv = document.createElement('div');
+                    currentMessageDiv.className = 'message assistant';
+                    currentMessageDiv.innerHTML = `<p>${data.message}</p>`;
+                    document.getElementById('messages').appendChild(currentMessageDiv);
+                } else {
+                    currentMessageDiv.innerHTML = `<p>${data.message}</p>`;
+                }
+                // 滚动到底部
+                const messages = document.getElementById('messages');
+                messages.scrollTop = messages.scrollHeight;
+            } else {
+                // 最终结果
+                if (!currentMessageDiv) {
+                    addMessage(data.message, 'assistant');
+                }
+                currentMessageDiv = null; // 重置
+                
+                if (data.summary) {
+                    addMessage(`📊 摘要: ${data.summary}`, 'thinking');
+                }
             }
         }
 

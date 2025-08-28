@@ -22,24 +22,22 @@ Go implementation of the DynAgent framework, a modular intelligent agent system 
 
 ### Development
 - `make fmt` - Format all Go code
-- `make lint` - Run code linting (requires golangci-lint)
-- `make dev` - Format code and run tests
 - `make clean` - Clean build artifacts and output directories
+- `make init` - Initialize project directories
 
 ### Examples
-- `make example` - Run simple agent example
-- `make example-tools` - Run example with tool integration
-- `go run examples/simple_agent.go` - Run specific example
+- `make example` - Run simple agent example  
+- `go run ./examples/simple_example.go` - Run specific example directly
 
-### Configuration
-- `make config` - Display current configuration
-- `make check-env` - Verify required environment variables
+### Utilities
+- `./bin/go-agent -q "你好，帮我计算 2+3 等于多少？"` - Single query mode
+- `./bin/go-agent -i` - Interactive mode
+- `./bin/go-agent -config custom.yaml` - Use custom config
 
 ## Configuration Management
 
 ### Configuration Files
-- `config.yaml` - Default configuration with mock LLM provider
-- `config-deepseek-v3.yaml` - DeepSeek-V3 specific configuration
+- `config.yaml` - Default configuration (OpenAI provider)
 
 ### Environment Variables
 - `OPENAI_API_KEY` - Required for OpenAI provider
@@ -52,7 +50,7 @@ agent:
   max_rounds: 10         # Maximum conversation rounds
   parallel: false        # Parallel/serial execution mode
 llm:
-  provider: "mock"       # Options: openai, deepseek-v3, mock
+  provider: "openai"     # Options: openai, mock
 execution:
   timeout: 30           # Task execution timeout (seconds)
 ```
@@ -89,7 +87,7 @@ execution:
 **LLMProvider** (`pkg/llm/provider.go`):
 - Abstract interface for LLM integration
 - Factory pattern for provider instantiation (`provider_factory.go`)
-- Implementations: OpenAI (`openai_provider.go`), Mock provider for testing
+- Implementations: OpenAI (`openai_provider.go`), ModelArts (`modelarts_provider.go`), Mock provider for testing
 
 ### Tool System
 
@@ -135,7 +133,8 @@ go-agent/
 │   ├── tools/              # Built-in tools
 │   ├── interfaces/         # Core interfaces
 │   └── models/             # Data structures
-├── internal/               # Internal implementation (legacy)
+├── docs/                   # Documentation files
+├── scripts/                # Setup and utility scripts
 ├── examples/               # Usage examples
 ├── config*.yaml            # Configuration files
 └── Makefile               # Build automation
@@ -175,7 +174,7 @@ go test -run TestTaskPlanner ./pkg/planning
 1. Implement `LLMProvider` interface in `pkg/llm/`
 2. Add case in `provider_factory.go`
 3. Update configuration schema
-4. Add provider-specific config file
+4. Test with mock responses first
 
 ### Debugging
 - Set `logging.level: "debug"` in config.yaml
@@ -190,21 +189,8 @@ go test -run TestTaskPlanner ./pkg/planning
 | Concurrency | asyncio/multiprocessing | goroutines/channels |
 | Configuration | setting.py + JSON | YAML files |
 | Record Storage | MongoDB + JSONL | File-based JSONL |
-| SSE Support | Flask integration | Not yet implemented |
 | Tool System | Dynamic imports | Interface-based registration |
 | Type Safety | Runtime | Compile-time |
-
-## Pending Features
-
-Based on Python version capabilities not yet implemented:
-- SSE (Server-Sent Events) streaming
-- MongoDB integration for records
-- MCP (Model Context Protocol) support
-- Web API endpoints
-- Citation management and deduplication
-- Additional LLM providers (Gemini, Claude)
-- Excel output generation
-- Visual debugging interface
 
 # Comment Guidelines
 - Use Chinese comments for all Go code in this project

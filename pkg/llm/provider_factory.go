@@ -19,6 +19,10 @@ func CreateProvider(config *models.LLMConfig) (interfaces.LLMProvider, error) {
 	case "deepseek":
 		return NewDeepSeekProvider(config), nil
 	
+	case "deepseek-personal":
+		// DeepSeek个人版API
+		return NewDeepSeekPersonalProvider(config), nil
+	
 	case "deepseek-v3", "modelarts":
 		// Use ModelArts provider for DeepSeek-V3 on ModelArts MAAS
 		return NewModelArtsProvider(config), nil
@@ -64,6 +68,14 @@ func ValidateProviderConfig(config *models.LLMConfig) error {
 	case "deepseek":
 		if config.BaseURL == "" {
 			config.BaseURL = "https://api.deepseek.com/v1"
+		}
+		if config.Model == "" {
+			config.Model = "deepseek-chat"
+		}
+	
+	case "deepseek-personal":
+		if config.BaseURL == "" {
+			config.BaseURL = "https://api.deepseek.com"
 		}
 		if config.Model == "" {
 			config.Model = "deepseek-chat"

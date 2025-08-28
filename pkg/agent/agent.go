@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"go-agent/pkg/execution"
 	"go-agent/pkg/interfaces"
+	"go-agent/pkg/llm"
 	"go-agent/pkg/messaging"
 	"go-agent/pkg/models"
 	"go-agent/pkg/planning"
@@ -341,10 +342,19 @@ func (a *DynAgent) initializeComponents() error {
 		a.resultProcessor = processing.NewResultProcessor(processorConfig)
 	}
 
-	// LLM提供者需要在外部设置
+	// 初始化真正的LLM提供者
 	if a.llmProvider == nil {
-		// 使用一个更智能的模拟提供者
-		a.llmProvider = a.createMockProvider()
+		provider, err := llm.CreateProvider(&a.config.LLMConfig)
+		if err != nil {
+			// 如果创建失败，回退到mock provider
+			fmt.Printf("警告：无法创建LLM提供者 (%v)，使用mock provider\n", err)
+			a.llmProvider = a.createMockProvider()
+		} else {
+			a.llmProvider = provider
+			fmt.Printf("✓ 成功初始化LLM提供者：%s\n", a.config.LLMConfig.Provider)
+			fmt.Printf("✓ 使用模型：%s\n", a.config.LLMConfig.Model)
+			fmt.Printf("✓ API端点：%s\n", a.config.LLMConfig.BaseURL)
+		}
 	}
 
 	// 初始化智能任务规划器
@@ -687,11 +697,7 @@ func (a *DynAgent) generateIntelligentResponse(userMessage string, processedResu
 		},
 	}
 
-	response, err := a.llmProvider.Call(context.Background(), messages, &models.LLMConfig{
-		Model:       "gpt-4",
-		Temperature: 0.7,
-		MaxTokens:   1000,
-	})
+	response, err := a.llmProvider.Call(context.Background(), messages, &a.config.LLMConfig)
 
 	if err != nil {
 		// 如果LLM调用失败，提供回退响应

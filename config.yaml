@@ -10,11 +10,12 @@ agent:
 
 # LLM provider configuration
 llm:
-  provider: "openai"  # openai, mock
-  model: "gpt-4o-mini"
+  provider: "deepseek-personal"  # deepseek-personal, openai, mock
+  model: "deepseek-chat"
   temperature: 0.7
   max_tokens: 4096
-  # API key via environment variable OPENAI_API_KEY
+  api_key: "sk-4ad2357f8ed3483ca32d278f0b5d5ebe"  # DeepSeek personal API key
+  base_url: "https://api.deepseek.com"            # DeepSeek personal API endpoint
 
 # Execution configuration
 execution:

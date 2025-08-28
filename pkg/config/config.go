@@ -180,11 +180,23 @@ func (cm *ConfigManager) LoadFromEnv() {
 
 // applyEnvOverrides applies environment variable overrides
 func (cm *ConfigManager) applyEnvOverrides() {
-	// LLM configuration
-	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-		cm.config.LLM.APIKey = apiKey
+	// LLM configuration - 只有在配置文件中没有设置API key时才使用环境变量
+	if cm.config.LLM.APIKey == "" {
+		if apiKey := os.Getenv("DEEPSEEK_API_KEY"); apiKey != "" {
+			cm.config.LLM.APIKey = apiKey
+		} else if apiKey := os.Getenv("LLM_API_KEY"); apiKey != "" {
+			cm.config.LLM.APIKey = apiKey
+		} else if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+			cm.config.LLM.APIKey = apiKey
+		}
 	}
 	if baseURL := os.Getenv("OPENAI_BASE_URL"); baseURL != "" {
+		cm.config.LLM.BaseURL = baseURL
+	}
+	if baseURL := os.Getenv("DEEPSEEK_BASE_URL"); baseURL != "" {
+		cm.config.LLM.BaseURL = baseURL
+	}
+	if baseURL := os.Getenv("LLM_BASE_URL"); baseURL != "" {
 		cm.config.LLM.BaseURL = baseURL
 	}
 	if model := os.Getenv("LLM_MODEL"); model != "" {
