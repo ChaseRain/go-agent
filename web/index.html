@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Agent - 智能对话系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .main-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .side-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 500px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            background: #f0f2f5;
+            color: #333;
+            align-self: flex-start;
+        }
+
+        .message.thinking {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+            font-style: italic;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+
+        .input-container button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .input-container button:hover {
+            transform: scale(1.05);
+        }
+
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-card {
+            min-height: 150px;
+        }
+
+        .status-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+
+        .status-dot.inactive {
+            background: #dc3545;
+            animation: none;
+        }
+
+        .thinking-process {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .thinking-step {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            font-size: 13px;
+            border-left: 3px solid #667eea;
+        }
+
+        .tasks-panel {
+            min-height: 200px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .task-item.active {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .task-item.completed {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .task-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .task-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .task-status.running {
+            background: #cfe2ff;
+            color: #004085;
+        }
+
+        .task-status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tool-call {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #e7f3ff;
+            border: 1px solid #2196f3;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #0066cc;
+            margin: 2px;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Go Agent 智能对话系统</h1>
+        <p>基于 DeepSeek V3 的智能任务规划与执行框架</p>
+    </div>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="card chat-container">
+                <div class="messages" id="messages">
+                    <div class="message assistant">
+                        <p>👋 您好！我是Go智能代理，可以帮助您进行任务规划和执行。请问有什么可以帮助您的吗？</p>
+                    </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="messageInput" placeholder="输入消息..." onkeypress="handleKeyPress(event)">
+                    <button id="sendBtn" onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="card status-card">
+                <h3>🎯 系统状态</h3>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">已连接</span>
+                </div>
+                <div class="thinking-process" id="thinkingProcess" style="display: none;">
+                    <div class="thinking-step">正在初始化...</div>
+                </div>
+            </div>
+
+            <div class="card tasks-panel">
+                <h3>📋 任务列表</h3>
+                <div id="tasksList">
+                    <p style="color: #999; text-align: center; padding: 20px;">暂无任务</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🛠️ 工具调用</h3>
+                <div id="toolCalls">
+                    <p style="color: #999; text-align: center; padding: 20px;">暂无工具调用</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="connection-status" id="connectionStatus">
+        <div class="status-dot"></div>
+        <span>SSE连接正常</span>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let currentRequestId = null;
+        let isProcessing = false;
+
+        // 初始化SSE连接
+        function initSSE() {
+            eventSource = new EventSource('/api/stream');
+
+            eventSource.onopen = function() {
+                console.log('SSE连接已建立');
+                updateConnectionStatus(true);
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('SSE连接错误:', error);
+                updateConnectionStatus(false);
+                
+                // 自动重连
+                setTimeout(() => {
+                    console.log('尝试重新连接...');
+                    initSSE();
+                }, 5000);
+            };
+
+            // 监听各种事件
+            eventSource.addEventListener('connected', function(e) {
+                console.log('Connected:', e.data);
+            });
+
+            eventSource.addEventListener('thinking', function(e) {
+                const data = JSON.parse(e.data);
+                handleThinkingEvent(data.data);
+            });
+
+            eventSource.addEventListener('planning', function(e) {
+                const data = JSON.parse(e.data);
+                handlePlanningEvent(data.data);
+            });
+
+            eventSource.addEventListener('task', function(e) {
+                const data = JSON.parse(e.data);
+                handleTaskEvent(data.data);
+            });
+
+            eventSource.addEventListener('tool_call', function(e) {
+                const data = JSON.parse(e.data);
+                handleToolCallEvent(data.data);
+            });
+
+            eventSource.addEventListener('tool_result', function(e) {
+                const data = JSON.parse(e.data);
+                handleToolResultEvent(data.data);
+            });
+
+            eventSource.addEventListener('result', function(e) {
+                const data = JSON.parse(e.data);
+                handleResultEvent(data.data);
+            });
+
+            eventSource.addEventListener('error', function(e) {
+                const data = JSON.parse(e.data);
+                handleErrorEvent(data.data);
+            });
+
+            eventSource.addEventListener('complete', function(e) {
+                const data = JSON.parse(e.data);
+                handleCompleteEvent(data.data);
+            });
+
+            eventSource.addEventListener('ping', function(e) {
+                // 心跳包，保持连接
+                console.log('Ping received');
+            });
+        }
+
+        // 更新连接状态
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const connectionStatus = document.getElementById('connectionStatus');
+
+            if (connected) {
+                statusDot.classList.remove('inactive');
+                statusText.textContent = '已连接';
+                connectionStatus.querySelector('span').textContent = 'SSE连接正常';
+            } else {
+                statusDot.classList.add('inactive');
+                statusText.textContent = '未连接';
+                connectionStatus.querySelector('span').textContent = 'SSE连接断开';
+            }
+        }
+
+        // 处理思考事件
+        function handleThinkingEvent(data) {
+            const thinkingProcess = document.getElementById('thinkingProcess');
+            thinkingProcess.style.display = 'block';
+            
+            const step = document.createElement('div');
+            step.className = 'thinking-step';
+            step.textContent = `💭 ${data.content}`;
+            thinkingProcess.appendChild(step);
+            
+            // 自动滚动到底部
+            thinkingProcess.scrollTop = thinkingProcess.scrollHeight;
+        }
+
+        // 处理规划事件
+        function handlePlanningEvent(data) {
+            if (data.status === 'started') {
+                addMessage(`📝 ${data.message}`, 'thinking');
+            } else if (data.status === 'completed' && data.tasks) {
+                displayTasks(data.tasks);
+                if (data.reasoning) {
+                    addMessage(`💡 规划理由: ${data.reasoning}`, 'thinking');
+                }
+            }
+        }
+
+        // 处理任务事件
+        function handleTaskEvent(data) {
+            updateTaskStatus(data.task_id, data.status);
+            
+            if (data.status === 'started') {
+                addMessage(`⚡ 开始执行任务: ${data.task_name} (${data.progress})`, 'thinking');
+            } else if (data.status === 'completed') {
+                addMessage(`✅ 任务完成: ${data.task_name} (${data.progress})`, 'thinking');
+            }
+        }
+
+        // 处理工具调用事件
+        function handleToolCallEvent(data) {
+            const toolCalls = document.getElementById('toolCalls');
+            if (toolCalls.querySelector('p')) {
+                toolCalls.innerHTML = '';
+            }
+            
+            const toolCall = document.createElement('div');
+            toolCall.className = 'tool-call';
+            toolCall.innerHTML = `🔧 ${data.tool_name}`;
+            toolCalls.appendChild(toolCall);
+        }
+
+        // 处理工具结果事件
+        function handleToolResultEvent(data) {
+            // 可以更新工具调用的状态
+            console.log('Tool result:', data);
+        }
+
+        // 处理结果事件
+        function handleResultEvent(data) {
+            addMessage(data.message, 'assistant');
+            
+            if (data.summary) {
+                addMessage(`📊 摘要: ${data.summary}`, 'thinking');
+            }
+        }
+
+        // 处理错误事件
+        function handleErrorEvent(data) {
+            addMessage(`❌ 错误: ${data.message}`, 'thinking');
+            isProcessing = false;
+            updateSendButton(false);
+        }
+
+        // 处理完成事件
+        function handleCompleteEvent(data) {
+            isProcessing = false;
+            updateSendButton(false);
+            
+            // 清理思考过程
+            setTimeout(() => {
+                document.getElementById('thinkingProcess').innerHTML = '';
+                document.getElementById('thinkingProcess').style.display = 'none';
+            }, 3000);
+        }
+
+        // 显示任务列表
+        function displayTasks(tasks) {
+            const tasksList = document.getElementById('tasksList');
+            tasksList.innerHTML = '';
+            
+            tasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-item';
+                taskItem.id = `task-${task.id}`;
+                
+                taskItem.innerHTML = `
+                    <div>
+                        <div style="font-weight: 500;">${task.name}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">${task.description}</div>
+                    </div>
+                    <div class="task-status pending">待执行</div>
+                `;
+                
+                tasksList.appendChild(taskItem);
+            });
+        }
+
+        // 更新任务状态
+        function updateTaskStatus(taskId, status) {
+            const taskItem = document.getElementById(`task-${taskId}`);
+            if (taskItem) {
+                const statusElement = taskItem.querySelector('.task-status');
+                
+                if (status === 'started') {
+                    taskItem.className = 'task-item active';
+                    statusElement.className = 'task-status running';
+                    statusElement.textContent = '执行中';
+                } else if (status === 'completed') {
+                    taskItem.className = 'task-item completed';
+                    statusElement.className = 'task-status completed';
+                    statusElement.textContent = '已完成';
+                }
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || isProcessing) return;
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 添加用户消息
+            addMessage(message, 'user');
+            
+            // 设置处理状态
+            isProcessing = true;
+            updateSendButton(true);
+            
+            // 清空之前的状态
+            document.getElementById('tasksList').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">处理中...</p>';
+            document.getElementById('toolCalls').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无工具调用</p>';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+                
+                const data = await response.json();
+                currentRequestId = data.request_id;
+                
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                addMessage('发送失败，请重试', 'thinking');
+                isProcessing = false;
+                updateSendButton(false);
+            }
+        }
+
+        // 添加消息到聊天界面
+        function addMessage(text, type) {
+            const messages = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<p>${text}</p>`;
+            messages.appendChild(messageDiv);
+            
+            // 滚动到底部
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // 更新发送按钮状态
+        function updateSendButton(disabled) {
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = disabled;
+            sendBtn.innerHTML = disabled ? '<div class="loading-spinner"></div>' : '发送';
+        }
+
+        // 处理回车键
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initSSE();
+        };
+
+        // 页面卸载时关闭SSE连接
+        window.onbeforeunload = function() {
+            if (eventSource) {
+                eventSource.close();
+            }
+        };
+    </script>
+</body>
+</html>

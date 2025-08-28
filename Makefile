@@ -1,6 +1,6 @@
 # Go Agent Makefile
 
-.PHONY: help build run test clean fmt example init
+.PHONY: help build run test clean fmt example init web build-web
 
 # Default target
 help:
@@ -9,6 +9,8 @@ help:
 	@echo "  make init       - Initialize project"
 	@echo "  make build      - Build the agent binary"
 	@echo "  make run        - Run in interactive mode"
+	@echo "  make web        - Run web server with SSE"
+	@echo "  make build-web  - Build web server binary"
 	@echo "  make example    - Run example"
 	@echo "  make test       - Run tests"
 	@echo "  make fmt        - Format code"
@@ -48,6 +50,19 @@ test:
 fmt:
 	@echo "Formatting code..."
 	@go fmt ./...
+
+# Build web server
+build-web:
+	@echo "Building Web Server..."
+	@mkdir -p bin
+	@go build -o bin/go-agent-web ./cmd/web/main.go
+	@echo "✓ Web server build complete: bin/go-agent-web"
+
+# Run web server
+web:
+	@echo "Starting Web Server..."
+	@echo "🚀 访问 http://localhost:8080 使用Web界面"
+	@go run ./cmd/web/main.go
 
 # Clean build artifacts
 clean:
