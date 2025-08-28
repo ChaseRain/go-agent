@@ -39,7 +39,7 @@ func NewDeepSeekPersonalProvider(config *models.LLMConfig) *DeepSeekPersonalProv
 	return &DeepSeekPersonalProvider{
 		config: config,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 120 * time.Second, // 增加到120秒
 		},
 	}
 }

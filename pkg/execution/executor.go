@@ -183,6 +183,10 @@ func (e *TaskExecutor) CanParallelize(tasks []models.SubTask) bool {
 // Private methods
 
 func (e *TaskExecutor) executeNormalTask(ctx context.Context, task *models.SubTask, execContext *models.ExecutionContext) error {
+	// 创建带有超时的context
+	callCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
 	// Build prompt for task execution
 	prompt := fmt.Sprintf(`Execute the following task:
 Task: %s
@@ -204,7 +208,7 @@ Please complete this task and provide the result.`,
 	})
 
 	// Call LLM
-	response, err := e.llmProvider.Call(ctx, messages, &execContext.Config.LLMConfig)
+	response, err := e.llmProvider.Call(callCtx, messages, &execContext.Config.LLMConfig)
 	if err != nil {
 		return fmt.Errorf("LLM call failed: %w", err)
 	}
@@ -275,6 +279,10 @@ func (e *TaskExecutor) executeAgentCallTask(ctx context.Context, task *models.Su
 	// Parse agent name and task from process
 	agentName, agentTask := e.parseAgentCall(task.Process)
 
+	// 创建带有超时的context
+	callCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
 	// In real implementation, would create and call sub-agent
 	// For now, simulate with LLM call
 	prompt := fmt.Sprintf(`Acting as agent '%s', execute: %s`, agentName, agentTask)
@@ -284,7 +292,7 @@ func (e *TaskExecutor) executeAgentCallTask(ctx context.Context, task *models.Su
 		{Role: "user", Content: prompt},
 	}
 
-	response, err := e.llmProvider.Call(ctx, messages, &execContext.Config.LLMConfig)
+	response, err := e.llmProvider.Call(callCtx, messages, &execContext.Config.LLMConfig)
 	if err != nil {
 		return fmt.Errorf("agent call failed: %w", err)
 	}
