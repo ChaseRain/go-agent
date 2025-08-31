@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func main() {
+func varnumpar() {
 	x := min(1, 3, 2, 0)
 	fmt.Printf("The minimum is: %d\n", x)
 
