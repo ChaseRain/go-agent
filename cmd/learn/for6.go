@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func main() {
+func for6() {
 	i := 0
 HERE:
 	fmt.Println(i)
